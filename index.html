@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Macro Tracker</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Macros">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#2f6f5e">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--ink:#1f2421;--muted:#6b716d;--line:#e3e0d8;--accent:#2f6f5e;--accent-soft:#e3efe9;--p:#2f6f5e;--c:#c58b2a;--f:#8a5a9e;--warn:#b4442f}
+@media (prefers-color-scheme:dark){:root{--bg:#141716;--card:#1d2120;--ink:#ecefed;--muted:#9aa29e;--line:#2e3432;--accent:#5fb39a;--accent-soft:#22332d;--p:#5fb39a;--c:#e0ac4f;--f:#b88bcc;--warn:#e07a63}}
+*{box-sizing:border-box}
+html,body{margin:0;overflow-x:hidden;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{padding:calc(14px + env(safe-area-inset-top)) 16px 8px}
+h1{font-size:22px;margin:0}
+.sub{color:var(--muted);font-size:14px}
+main{padding:0 16px calc(90px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}
+h2{font-size:17px;margin:0 0 10px}
+label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
+input,select{width:100%;min-width:0;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.row3{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+button{font:inherit;border:0;border-radius:10px;padding:11px 14px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
+button.ghost{background:var(--accent-soft);color:var(--accent)}
+button.small{padding:6px 10px;font-size:14px}
+button.x{background:none;color:var(--muted);padding:4px 8px;font-size:18px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;color:var(--muted);border-radius:0;padding:12px 4px;font-size:13px}
+nav button.on{color:var(--accent)}
+.tab{display:none}.tab.on{display:block}
+.big{font-size:30px;font-weight:700}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin:4px 0 10px}
+.bar i{display:block;height:100%;border-radius:6px}
+.mline{display:flex;justify-content:space-between;font-size:14px}
+.item{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:15px}
+.item:first-child{border-top:0}
+.item .n{flex:1}
+.item .m{color:var(--muted);font-size:13px}
+.note{font-size:13px;color:var(--muted)}
+.warn{color:var(--warn);font-size:14px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:var(--accent-soft);color:var(--accent);border-radius:20px;padding:6px 10px;font-size:14px;border:0;font-weight:500}
+.datebar{display:flex;align-items:center;gap:8px}
+.datebar input{flex:1;min-width:0}
+svg text{fill:var(--muted);font-size:11px}
+textarea{width:100%;min-height:90px;font:12px monospace;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+</style>
+</head>
+<body>
+<header><h1>Macro Tracker</h1><div class="sub" id="hdr">Set up your numbers to start.</div></header>
+<main>
+
+<!-- TODAY -->
+<section class="tab on" id="t-today">
+  <div class="card">
+    <div class="datebar"><button class="ghost small" onclick="shiftDay(-1)">&lsaquo;</button><input type="date" id="day" onchange="renderToday()"><button class="ghost small" onclick="shiftDay(1)">&rsaquo;</button></div>
+    <div style="margin-top:12px"><span class="big" id="calLeft">0</span> <span class="sub" id="calSub">calories left</span></div>
+    <div class="bar"><i id="calBar" style="background:var(--accent)"></i></div>
+    <div id="macroBars"></div>
+  </div>
+  <div class="card">
+    <h2>Add food</h2>
+    <label for="fName">Food</label><input id="fName" placeholder="e.g. 2 eggs" list="foodList" oninput="fillFromSaved()">
+    <datalist id="foodList"></datalist>
+    <div class="row3">
+      <div><label>Cal</label><input id="fCal" inputmode="decimal"></div>
+      <div><label>Protein</label><input id="fP" inputmode="decimal"></div>
+      <div><label>Carbs</label><input id="fC" inputmode="decimal"></div>
+      <div><label>Fat</label><input id="fF" inputmode="decimal"></div>
+    </div>
+    <div class="note" style="margin-top:6px">Leave Cal blank and it's figured from the grams (4 / 4 / 9).</div>
+    <div class="btns"><button onclick="addFood()">Add</button></div>
+    <div id="recent" style="margin-top:12px"></div>
+  </div>
+  <div class="card"><h2>Today's log</h2><div id="log"><div class="note">Nothing logged yet.</div></div></div>
+</section>
+
+<!-- CHECK-IN -->
+<section class="tab" id="t-check">
+  <div class="card">
+    <h2>Weekly check-in</h2>
+    <div class="note">Same scale, same time, before eating. Once a week is plenty.</div>
+    <div class="row"><div><label>Date</label><input type="date" id="cDate"></div><div><label>Weight (lb)</label><input id="cW" inputmode="decimal"></div></div>
+    <div class="row"><div><label>Waist (in, optional)</label><input id="cWaist" inputmode="decimal"></div><div><label>Hips (in, optional)</label><input id="cHips" inputmode="decimal"></div></div>
+    <div class="btns"><button onclick="addCheck()">Save check-in</button></div>
+  </div>
+  <div class="card"><h2>Progress</h2><div id="progSum" class="note">No check-ins yet.</div><div id="chart"></div><div id="checks"></div></div>
+</section>
+
+<!-- SETUP -->
+<section class="tab" id="t-setup">
+  <div class="card">
+    <h2>My numbers</h2>
+    <div class="row">
+      <div><label>Sex (for the formula)</label><select id="sSex"><option value="f">Female</option><option value="m">Male</option></select></div>
+      <div><label>Age</label><input id="sAge" inputmode="numeric"></div>
+    </div>
+    <div class="row">
+      <div><label>Height (ft)</label><input id="sFt" inputmode="numeric"></div>
+      <div><label>Height (in)</label><input id="sIn" inputmode="numeric"></div>
+    </div>
+    <div class="row">
+      <div><label>Current weight (lb)</label><input id="sW" inputmode="decimal"></div>
+      <div><label>Goal weight (lb)</label><input id="sG" inputmode="decimal"></div>
+    </div>
+    <label>Activity</label>
+    <select id="sAct">
+      <option value="1.2">Mostly sitting, little exercise</option>
+      <option value="1.375">Light exercise 1 to 3 days a week</option>
+      <option value="1.55">Moderate exercise 3 to 5 days a week</option>
+      <option value="1.725">Hard exercise 6 to 7 days a week</option>
+    </select>
+    <label>Pace</label>
+    <select id="sPace">
+      <option value="250">Easy, about 0.5 lb a week</option>
+      <option value="500" selected>Steady, about 1 lb a week</option>
+      <option value="750">Faster, about 1.5 lb a week</option>
+    </select>
+    <div class="btns"><button onclick="calc()">Figure my macros</button></div>
+    <div id="calcOut"></div>
+  </div>
+  <div class="card">
+    <h2>Have numbers from a doctor or coach?</h2>
+    <div class="note">Type them here and they replace the figured ones.</div>
+    <div class="row3">
+      <div><label>Cal</label><input id="oCal" inputmode="numeric"></div>
+      <div><label>Protein</label><input id="oP" inputmode="numeric"></div>
+      <div><label>Carbs</label><input id="oC" inputmode="numeric"></div>
+      <div><label>Fat</label><input id="oF" inputmode="numeric"></div>
+    </div>
+    <div class="btns"><button class="ghost" onclick="useOwn()">Use these targets</button></div>
+  </div>
+  <div class="card note">This tracker gives general estimates (Mifflin-St Jeor formula) and is not medical advice. Check your targets with your doctor, especially if you have a health condition, are pregnant or nursing, or take medication.</div>
+</section>
+
+<!-- BACKUP -->
+<section class="tab" id="t-backup">
+  <div class="card">
+    <h2>Back up your data</h2>
+    <div class="note">Your log lives only on this phone. Save a backup every week or two, and before you switch phones or clear your browser.</div>
+    <div class="btns"><button onclick="saveFile()">Save backup file</button><button class="ghost" onclick="copyBackup()">Copy backup text</button></div>
+    <div id="bkMsg" class="note" style="margin-top:8px"></div>
+    <div class="note" id="lastBk" style="margin-top:4px"></div>
+  </div>
+  <div class="card">
+    <h2>Restore</h2>
+    <div class="note">Pick a backup file, or paste backup text below. This replaces what's on this phone.</div>
+    <label>Backup file</label><input type="file" id="rFile" accept=".json,application/json,text/plain" onchange="restoreFile(this)">
+    <label>Or paste backup text</label><textarea id="rText"></textarea>
+    <div class="btns"><button class="ghost" onclick="restoreText()">Restore from text</button></div>
+    <div id="rMsg" class="note" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <h2>Put it on your home screen</h2>
+    <div class="note"><b>iPhone:</b> open this page in Safari, tap the Share button, then "Add to Home Screen."<br><b>Android:</b> open it in Chrome, tap the menu (three dots), then "Add to Home screen" or "Install app."<br>Always open it from that icon so your data stays in one place.</div>
+  </div>
+</section>
+</main>
+
+<nav>
+  <button class="on" data-t="today">Today</button>
+  <button data-t="check">Check-in</button>
+  <button data-t="setup">My Numbers</button>
+  <button data-t="backup">Backup</button>
+</nav>
+
+<script>
+const KEY='macroTracker.v1';
+let S={targets:null,profile:null,days:{},foods:{},checks:[],lastBackup:null};
+let memoryOnly=false;
+function load(){try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r));}catch(e){memoryOnly=true}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){memoryOnly=true;alertBar('Saving is blocked in this browser. Use Backup to keep your data.')}}
+function alertBar(t){document.getElementById('hdr').textContent=t}
+const $=id=>document.getElementById(id);
+const num=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:0};
+const r0=n=>Math.round(n);
+function today(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+// tabs
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id==='t-'+b.dataset.t));if(b.dataset.t==='check')renderChecks();if(b.dataset.t==='backup')renderBackup();window.scrollTo(0,0)});
+function go(t){document.querySelector('nav button[data-t="'+t+'"]').click()}
+
+// setup
+function calc(){
+  const sex=$('sSex').value,age=num($('sAge').value),ft=num($('sFt').value),inch=num($('sIn').value),w=num($('sW').value),g=num($('sG').value)||w,act=num($('sAct').value),pace=num($('sPace').value);
+  if(!age||!ft||!w){$('calcOut').innerHTML='<p class="warn">Fill in age, height, and current weight.</p>';return}
+  const kg=w*0.453592,cm=(ft*12+inch)*2.54;
+  const bmr=10*kg+6.25*cm-5*age+(sex==='m'?5:-161);
+  const tdee=bmr*act;
+  let cal=tdee-(g<w?pace:0),floored=false;
+  if(cal<bmr){cal=bmr;floored=true}
+  cal=Math.round(cal/10)*10;
+  const p=r0(g*1),f=r0(w*0.3);
+  let c=r0((cal-p*4-f*9)/4),tight=false;
+  if(c<50){tight=true;c=Math.max(c,0)}
+  S.profile={sex,age,ft,inch,w,g,act,pace};
+  S.targets={cal,p,c,f,source:'figured'};save();
+  $('calcOut').innerHTML=`<div class="card" style="margin:12px 0 0;background:var(--accent-soft);border:0">
+  <div class="big">${cal} cal</div><div>Protein ${p} g · Carbs ${c} g · Fat ${f} g</div>
+  <div class="note" style="margin-top:8px">Resting burn ${r0(bmr)} cal · Daily burn ${r0(tdee)} cal${g<w?' · minus '+pace+' for your pace':''}.<br>Protein is 1 g per lb of goal weight, fat about 0.3 g per lb of current weight, carbs fill the rest.</div>
+  ${floored?'<p class="warn">Your pace would put you under your resting burn, so the target is held at your resting burn. Try a slower pace.</p>':''}
+  ${tight?'<p class="warn">Carbs come out very low at this target. Check with your doctor or pick a slower pace.</p>':''}
+  ${g<w?`<div class="note">At about ${(pace/500).toFixed(1)} lb a week, ${r0(w-g)} lb takes roughly ${Math.ceil((w-g)/(pace/500))} weeks. Real progress goes faster some weeks and slower others. Redo this every few weeks as your weight changes.</div>`:''}
+  <div class="btns"><button onclick="go('today')">Start logging</button></div></div>`;
+  renderToday();
+}
+function useOwn(){const cal=num($('oCal').value),p=num($('oP').value),c=num($('oC').value),f=num($('oF').value);if(!cal){alert('Enter at least calories.');return}S.targets={cal,p,c,f,source:'own'};save();renderToday();go('today')}
+function fillSetup(){const p=S.profile;if(!p)return;$('sSex').value=p.sex;$('sAge').value=p.age;$('sFt').value=p.ft;$('sIn').value=p.inch;$('sW').value=p.w;$('sG').value=p.g;$('sAct').value=p.act;$('sPace').value=p.pace}
+
+// today
+function curDay(){return $('day').value||today()}
+function shiftDay(n){const d=new Date(curDay()+'T12:00');d.setDate(d.getDate()+n);$('day').value=d.toISOString().slice(0,10);renderToday()}
+function fillFromSaved(){const f=S.foods[$('fName').value.trim().toLowerCase()];if(f){$('fCal').value=f.cal;$('fP').value=f.p;$('fC').value=f.c;$('fF').value=f.f}}
+function addFood(){
+  const name=$('fName').value.trim();if(!name){$('fName').focus();return}
+  const p=num($('fP').value),c=num($('fC').value),f=num($('fF').value);let cal=num($('fCal').value);if(!cal)cal=r0(p*4+c*4+f*9);
+  const e={name,cal,p,c,f};const d=curDay();(S.days[d]=S.days[d]||[]).push(e);
+  S.foods[name.toLowerCase()]=Object.assign({},e,{used:Date.now()});save();
+  ['fName','fCal','fP','fC','fF'].forEach(i=>$(i).value='');renderToday();
+}
+function quick(k){const f=S.foods[k];if(!f)return;const d=curDay();(S.days[d]=S.days[d]||[]).push({name:f.name,cal:f.cal,p:f.p,c:f.c,f:f.f});f.used=Date.now();save();renderToday()}
+function delFood(i){const d=curDay();S.days[d].splice(i,1);save();renderToday()}
+function renderToday(){
+  if(!$('day').value)$('day').value=today();
+  const T=S.targets,list=S.days[curDay()]||[];
+  const tot=list.reduce((a,e)=>({cal:a.cal+e.cal,p:a.p+e.p,c:a.c+e.c,f:a.f+e.f}),{cal:0,p:0,c:0,f:0});
+  if(!T){$('calLeft').textContent='—';$('calSub').innerHTML='<a href="#" onclick="go(\'setup\');return false">Set up your numbers</a> to see targets';$('calBar').style.width='0';$('macroBars').innerHTML='';}
+  else{const left=T.cal-tot.cal;$('calLeft').textContent=r0(Math.abs(left));$('calSub').textContent=(left>=0?'calories left':'calories over')+' · '+r0(tot.cal)+' of '+T.cal;
+    $('calBar').style.width=Math.min(100,tot.cal/T.cal*100)+'%';$('calBar').style.background=left<0?'var(--warn)':'var(--accent)';
+    $('macroBars').innerHTML=[['Protein','p','--p'],['Carbs','c','--c'],['Fat','f','--f']].map(([n,k,v])=>`<div class="mline"><span>${n}</span><span>${r0(tot[k])} / ${T[k]} g</span></div><div class="bar"><i style="width:${T[k]?Math.min(100,tot[k]/T[k]*100):0}%;background:var(${v})"></i></div>`).join('');
+    alertBar(T.source==='own'?'Targets from your doctor or coach.':'Daily target '+T.cal+' cal · P '+T.p+' · C '+T.c+' · F '+T.f);}
+  $('log').innerHTML=list.length?list.map((e,i)=>`<div class="item"><div class="n">${esc(e.name)}<div class="m">${r0(e.cal)} cal · P ${r0(e.p)} · C ${r0(e.c)} · F ${r0(e.f)}</div></div><button class="x" aria-label="Remove" onclick="delFood(${i})">&times;</button></div>`).join(''):'<div class="note">Nothing logged yet.</div>';
+  const keys=Object.keys(S.foods).sort((a,b)=>S.foods[b].used-S.foods[a].used);
+  $('foodList').innerHTML=keys.map(k=>`<option value="${esc(S.foods[k].name)}">`).join('');
+  $('recent').innerHTML=keys.length?'<div class="note" style="margin-bottom:6px">Tap to add again:</div><div class="chips">'+keys.slice(0,8).map(k=>`<button class="chip" onclick="quick('${esc(k).replace(/'/g,"\\'")}')">${esc(S.foods[k].name)}</button>`).join('')+'</div>':'';
+}
+
+// check-ins
+function addCheck(){const date=$('cDate').value||today(),w=num($('cW').value);if(!w){$('cW').focus();return}
+  S.checks=S.checks.filter(c=>c.date!==date);S.checks.push({date,w,waist:num($('cWaist').value)||null,hips:num($('cHips').value)||null});S.checks.sort((a,b)=>a.date<b.date?-1:1);save();
+  ['cW','cWaist','cHips'].forEach(i=>$(i).value='');renderChecks()}
+function delCheck(d){S.checks=S.checks.filter(c=>c.date!==d);save();renderChecks()}
+function renderChecks(){
+  if(!$('cDate').value)$('cDate').value=today();
+  const C=S.checks;
+  if(!C.length){$('progSum').textContent='No check-ins yet.';$('chart').innerHTML='';$('checks').innerHTML='';return}
+  const first=C[0],last=C[C.length-1],ch=last.w-first.w,g=S.profile&&S.profile.g;
+  $('progSum').innerHTML=`<span class="big" style="font-size:24px">${ch<=0?'−':'+'}${Math.abs(ch).toFixed(1)} lb</span> since ${first.date}${g&&g<first.w?` · ${Math.max(0,last.w-g).toFixed(1)} lb to goal`:''}`;
+  if(C.length>1){const W=320,H=140,pad=28,ws=C.map(c=>c.w),lo=Math.min(...ws,g||Infinity)-1,hi=Math.max(...ws)+1;
+    const x=i=>pad+i*(W-pad-8)/(C.length-1),y=v=>8+(hi-v)*(H-30)/(hi-lo);
+    const pts=C.map((c,i)=>x(i)+','+y(c.w)).join(' ');
+    $('chart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Weight over time">
+      ${g&&g>lo?`<line x1="${pad}" x2="${W-8}" y1="${y(g)}" y2="${y(g)}" stroke="var(--line)" stroke-dasharray="4 4"/><text x="${W-8}" y="${y(g)-4}" text-anchor="end">goal ${g}</text>`:''}
+      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+      ${C.map((c,i)=>`<circle cx="${x(i)}" cy="${y(c.w)}" r="4" fill="var(--accent)"><title>${c.date}: ${c.w} lb</title></circle>`).join('')}
+      <text x="2" y="${y(hi-1)+4}">${(hi-1).toFixed(0)}</text><text x="2" y="${y(lo+1)+4}">${(lo+1).toFixed(0)}</text></svg>`}else $('chart').innerHTML='';
+  $('checks').innerHTML=C.slice().reverse().map(c=>`<div class="item"><div class="n">${c.date}<div class="m">${c.w} lb${c.waist?' · waist '+c.waist:''}${c.hips?' · hips '+c.hips:''}</div></div><button class="x" aria-label="Remove" onclick="delCheck('${c.date}')">&times;</button></div>`).join('');
+}
+
+// backup
+function backupText(){return JSON.stringify({app:'macroTracker',version:1,saved:new Date().toISOString(),data:S})}
+function markBackup(){S.lastBackup=new Date().toISOString();save();renderBackup()}
+function saveFile(){
+  const txt=backupText(),name='macro-tracker-backup-'+today()+'.json';
+  const file=new File([txt],name,{type:'application/json'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:name}).then(()=>{$('bkMsg').textContent='Backup shared. Save it to Files or send it to yourself.';markBackup()}).catch(()=>{});return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();a.remove();
+  $('bkMsg').textContent='Backup file saved: '+name;markBackup();
+}
+function copyBackup(){const t=backupText();(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{$('bkMsg').textContent='Copied. Paste it into a note or a text to yourself.';markBackup()}).catch(()=>{$('rText').value=t;$('bkMsg').textContent='Copy blocked here. The backup text is in the box below; select it and copy.'})}
+function restoreFrom(t,msg){try{const o=JSON.parse(t);if(o.app!=='macroTracker'||!o.data)throw 0;if(!confirm('Replace what is on this phone with this backup?'))return;S=Object.assign({targets:null,profile:null,days:{},foods:{},checks:[],lastBackup:null},o.data);save();fillSetup();renderToday();renderChecks();$(msg).textContent='Restored backup from '+(o.saved||'').slice(0,10)+'.'}catch(e){$(msg).textContent='That does not look like a Macro Tracker backup.'}}
+function restoreFile(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>restoreFrom(t,'rMsg'));inp.value=''}
+function restoreText(){restoreFrom($('rText').value.trim(),'rMsg')}
+function renderBackup(){$('lastBk').textContent=S.lastBackup?'Last backup: '+S.lastBackup.slice(0,10):'No backup yet.'}
+
+load();fillSetup();renderToday();
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
+if(memoryOnly)alertBar('Saving is blocked in this browser. Use Backup to keep your data.');
+</script>
+</body>
+</html>
